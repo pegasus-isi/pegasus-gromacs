@@ -1,0 +1,2 @@
+sample,structure,em_mdp,nvt_mdp,npt_mdp,md_mdp,force_field,box_type,distance_to_box
+1AKI,data/test/1AKI.pdb,data/test/em.mdp,data/test/nvt.mdp,data/test/npt.mdp,data/test/md.mdp,charmm27,cubic,1.0

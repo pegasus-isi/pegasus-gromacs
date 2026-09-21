@@ -1,0 +1,28 @@
+Bootstrap: docker
+From: mambaorg/micromamba:1.5-jammy
+
+%post
+    # %post always runs as root during the build — no USER switching needed
+    # (MAMBA_ROOT_PREFIX and friends are already set via the base image's env).
+
+    apt-get update && apt-get install -y --no-install-recommends \
+        wget curl git
+    rm -rf /var/lib/apt/lists/*
+
+    # Single solver pass resolves GROMACS + its dependencies.
+    micromamba install -y -n base -c conda-forge -c bioconda \
+        python=3.11 \
+        gromacs \
+        matplotlib
+    micromamba clean --all --yes
+
+%environment
+    export PATH="/opt/conda/bin:$PATH"
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
+    # Ensure Pegasus wrapper log output is not buffered.
+    export PYTHONUNBUFFERED=1
+
+%runscript
+    # Runs inside the activated micromamba base environment.
+    exec micromamba run -n base "$@"
