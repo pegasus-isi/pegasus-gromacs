@@ -425,7 +425,8 @@ class GromacsMDWorkflow:
         md_gro = File(f"{sample}_md.gro")
         md_tpr = File(f"{sample}_md.tpr")
         md_xtc = File(f"{sample}_md.xtc")
-        md_report = File(f"{sample}_MD_REPORT")
+        # gmx report-methods requires its -o output to end in .out
+        md_report = File(f"{sample}_MD_REPORT.out")
         production_job = (
             Job("production", _id=f"production_{sample}", node_label=f"production_{sample}")
             .add_args(

@@ -238,7 +238,7 @@ log_step "8. production"
         --output-gro "${SAMPLE}_md.gro" \
         --output-tpr "${SAMPLE}_md.tpr" \
         --output-xtc "${SAMPLE}_md.xtc" \
-        --output-report "${SAMPLE}_MD_REPORT" \
+        --output-report "${SAMPLE}_MD_REPORT.out" \
         --gmx-cmd "${GMX_CMD}"
 )
 

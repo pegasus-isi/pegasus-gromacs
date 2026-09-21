@@ -37,11 +37,21 @@ def main():
     parser.add_argument("--output-gro", required=True, help="Output production .gro file")
     parser.add_argument("--output-tpr", required=True, help="Output production .tpr file")
     parser.add_argument("--output-xtc", required=True, help="Output production trajectory (.xtc)")
-    parser.add_argument("--output-report", required=True, help="Output MD_REPORT file")
+    parser.add_argument(
+        "--output-report", required=True,
+        help="Output methods report file (gmx report-methods requires a .out suffix)",
+    )
     parser.add_argument("--gmx-cmd", default="gmx", help="GROMACS command (default: gmx)")
     args = parser.parse_args()
 
     logger.info(f"Input: {args.input_gro}")
+
+    if not args.output_report.endswith(".out"):
+        logger.error(
+            f"--output-report must end in .out (gmx report-methods requirement): "
+            f"{args.output_report}"
+        )
+        sys.exit(1)
 
     for out in (args.output_gro, args.output_tpr, args.output_xtc, args.output_report):
         out_dir = os.path.dirname(out)

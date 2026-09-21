@@ -153,7 +153,7 @@ Final outputs staged to the `output/` directory, per sample:
 | Output | Description |
 |--------|-------------|
 | `{sample}_md.gro`, `{sample}_md.tpr`, `{sample}_md.xtc` | Production MD trajectory + structure |
-| `{sample}_MD_REPORT` | Simulation methods report (`gmx report-methods`) |
+| `{sample}_MD_REPORT.out` | Simulation methods report (`gmx report-methods`; `-o` requires a `.out` suffix) |
 | `{sample}_rmsd.xvg` | RMSD of the trajectory — final analysis output |
 | `{sample}_rmsd.png` | RMSD vs. time plot (not in the source pipeline) |
 
