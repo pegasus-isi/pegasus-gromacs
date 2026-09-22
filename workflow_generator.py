@@ -491,7 +491,7 @@ class GromacsMDWorkflow:
             .add_args(
                 "--input", rmsd_xvg,
                 "--output", rmsd_png,
-                "--title", f"{sample} RMSD vs. Time",
+                "--title", f'"{sample} RMSD vs. Time"',
             )
             .add_inputs(rmsd_xvg)
             .add_outputs(rmsd_png, stage_out=True, register_replica=False)
