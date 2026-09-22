@@ -5,7 +5,7 @@ GROMACS molecular dynamics simulations, converted from the
 [nf-core/moleculardynamics](https://github.com/nf-core/moleculardynamics)
 (nf-core/mdsimulations) Nextflow pipeline.
 
-Each sample in the samplesheet runs an independent 11-step linear pipeline
+Each sample in the samplesheet runs an independent 10-step linear pipeline
 (PDB cleanup through RMSD analysis and plotting). Samples have no cross-sample
 dependencies, so Pegasus runs them all in parallel.
 
@@ -20,7 +20,7 @@ dependencies, so Pegasus runs them all in parallel.
 ## Pipeline Overview
 
 ```
-structure.pdb ──> clean_pdb ──> check_missing_atoms ──> topology ──> solvation
+structure.pdb ──> pdb_clean_and_check_missing_atoms ──> topology ──> solvation
                                                                          │
        ┌─────────────────────────────────────────────────────────────┘
        ▼
@@ -35,17 +35,16 @@ structure.pdb ──> clean_pdb ──> check_missing_atoms ──> topology ─
 
 | Step | Tool | Description |
 |------|------|-------------|
-| 1. clean_pdb | `grep` | Strip HETATM/CONECT records from the input PDB |
-| 2. check_missing_atoms | `grep` | Fail fast if the cleaned PDB has missing atoms |
-| 3. topology | `gmx pdb2gmx` | Generate topology (.gro/.top/.itp) from the PDB |
-| 4. solvation | `gmx editconf/solvate/grompp/genion` | Build box, solvate, neutralize with ions |
-| 5. energy_min | `gmx grompp/mdrun` | Energy minimization |
-| 6. nvt_equilibration | `gmx grompp/mdrun` | NVT equilibration |
-| 7. npt_equilibration | `gmx grompp/mdrun` | NPT equilibration |
-| 8. production | `gmx grompp/mdrun/report-methods` | Production MD run + methods report |
-| 9. post_processing | `gmx trjconv` | Remove periodicity (PBC) artifacts |
-| 10. analysis_rmsd | `gmx rms` | RMSD of the trajectory (final output) |
-| 11. analysis_plot | `matplotlib` | Plot the RMSD `.xvg` to a PNG (final output; not in the source pipeline) |
+| 1. pdb_clean_and_check_missing_atoms | `grep`-equivalent | Strip HETATM/CONECT records from the input PDB, then fail fast if it has missing atoms |
+| 2. topology | `gmx pdb2gmx` | Generate topology (.gro/.top/.itp) from the PDB |
+| 3. solvation | `gmx editconf/solvate/grompp/genion` | Build box, solvate, neutralize with ions |
+| 4. energy_min | `gmx grompp/mdrun` | Energy minimization |
+| 5. nvt_equilibration | `gmx grompp/mdrun` | NVT equilibration |
+| 6. npt_equilibration | `gmx grompp/mdrun` | NPT equilibration |
+| 7. production | `gmx grompp/mdrun/report-methods` | Production MD run + methods report |
+| 8. post_processing | `gmx trjconv` | Remove periodicity (PBC) artifacts |
+| 9. analysis_rmsd | `gmx rms` | RMSD of the trajectory (final output) |
+| 10. analysis_plot | `matplotlib` | Plot the RMSD `.xvg` to a PNG (final output; not in the source pipeline) |
 
 ## Directory Structure
 
@@ -53,8 +52,7 @@ structure.pdb ──> clean_pdb ──> check_missing_atoms ──> topology ─
 pegasus-gromacs/
 ├── workflow_generator.py         # Pegasus workflow generator
 ├── bin/
-│   ├── clean_pdb.py
-│   ├── check_missing_atoms.py
+│   ├── pdb_clean_and_check_missing_atoms.py
 │   ├── topology.py
 │   ├── solvation.py
 │   ├── energy_min.py
@@ -161,8 +159,7 @@ Final outputs staged to the `output/` directory, per sample:
 
 | Step | Memory | Cores |
 |------|--------|-------|
-| clean_pdb | 1 GB | 1 |
-| check_missing_atoms | 1 GB | 1 |
+| pdb_clean_and_check_missing_atoms | 1 GB | 1 |
 | topology | 2 GB | 1 |
 | solvation | 2 GB | 1 |
 | energy_min | 4 GB | 4 |
@@ -177,8 +174,7 @@ Final outputs staged to the `output/` directory, per sample:
 
 | nf-core/moleculardynamics | Pegasus |
 |----------------------------|---------|
-| `PRE_POS_CLEAN_PDB` process | `clean_pdb` Transformation + Job |
-| `PRE_POS_CHECK_MISSING_ATOMS` process | `check_missing_atoms` Transformation + Job |
+| `PRE_POS_CLEAN_PDB` + `PRE_POS_CHECK_MISSING_ATOMS` processes | Combined into a single `pdb_clean_and_check_missing_atoms` Transformation + Job |
 | `RUN_TOPOLOGY` process | `topology` Transformation + Job |
 | `RUN_SOLVATION` process | `solvation` Transformation + Job |
 | `RUN_ENERGY_MINIMISATION` process | `energy_min` Transformation + Job |

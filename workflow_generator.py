@@ -11,17 +11,17 @@ pipeline (structure cleanup through RMSD analysis). Samples are fully
 independent, so they all run in parallel.
 
 Pipeline steps (per sample):
-1. clean_pdb            - strip HETATM/CONECT records from the input PDB
-2. check_missing_atoms   - fail fast if the cleaned PDB has missing atoms
-3. topology              - gmx pdb2gmx: PDB -> topology (.gro/.top/.itp)
-4. solvation             - gmx editconf/solvate/grompp/genion: box + solvent + ions
-5. energy_min            - gmx grompp/mdrun: energy minimization
-6. nvt_equilibration     - gmx grompp/mdrun: NVT equilibration
-7. npt_equilibration     - gmx grompp/mdrun: NPT equilibration
-8. production            - gmx grompp/mdrun/report-methods: production MD run
-9. post_processing       - gmx trjconv: remove periodicity artifacts
-10. analysis_rmsd        - gmx rms: RMSD of the trajectory
-11. analysis_plot        - matplotlib: plot the RMSD .xvg to a PNG
+1. pdb_clean_and_check_missing_atoms - strip HETATM/CONECT records from the
+                           input PDB, then fail fast if it has missing atoms
+2. topology              - gmx pdb2gmx: PDB -> topology (.gro/.top/.itp)
+3. solvation             - gmx editconf/solvate/grompp/genion: box + solvent + ions
+4. energy_min            - gmx grompp/mdrun: energy minimization
+5. nvt_equilibration     - gmx grompp/mdrun: NVT equilibration
+6. npt_equilibration     - gmx grompp/mdrun: NPT equilibration
+7. production            - gmx grompp/mdrun/report-methods: production MD run
+8. post_processing       - gmx trjconv: remove periodicity artifacts
+9. analysis_rmsd         - gmx rms: RMSD of the trajectory
+10. analysis_plot        - matplotlib: plot the RMSD .xvg to a PNG
                            (not in the source pipeline; added for visualization)
 
 Usage:
@@ -61,8 +61,7 @@ REQUIRED_COLUMNS = [
 # mdrun steps (energy_min, nvt/npt equilibration, production) are the
 # expensive ones; the rest are cheap bookkeeping/analysis steps.
 TOOL_CONFIGS = {
-    "clean_pdb": {"memory": "1 GB", "cores": 1},
-    "check_missing_atoms": {"memory": "1 GB", "cores": 1},
+    "pdb_clean_and_check_missing_atoms": {"memory": "1 GB", "cores": 1},
     "topology": {"memory": "2 GB", "cores": 1},
     "solvation": {"memory": "2 GB", "cores": 1},
     "energy_min": {"memory": "4 GB", "cores": 4},
@@ -294,33 +293,22 @@ class GromacsMDWorkflow:
         npt_mdp = File(f"{sample}_npt.mdp")
         md_mdp = File(f"{sample}_md.mdp")
 
-        # --- Step 1: clean_pdb ---
-        cleaned_pdb = File(f"{sample}_cleaned.pdb")
-        clean_job = (
-            Job("clean_pdb", _id=f"clean_pdb_{sample}", node_label=f"clean_pdb_{sample}")
-            .add_args("--input", structure, "--output", cleaned_pdb)
-            .add_inputs(structure)
-            .add_outputs(cleaned_pdb, stage_out=False, register_replica=False)
-            .add_pegasus_profiles(label=sample)
-        )
-        self.wf.add_jobs(clean_job)
-
-        # --- Step 2: check_missing_atoms ---
+        # --- Step 1: pdb_clean_and_check_missing_atoms ---
         checked_pdb = File(f"{sample}_checked.pdb")
-        check_job = (
+        clean_check_job = (
             Job(
-                "check_missing_atoms",
-                _id=f"check_missing_atoms_{sample}",
-                node_label=f"check_missing_atoms_{sample}",
+                "pdb_clean_and_check_missing_atoms",
+                _id=f"pdb_clean_and_check_missing_atoms_{sample}",
+                node_label=f"pdb_clean_and_check_missing_atoms_{sample}",
             )
-            .add_args("--input", cleaned_pdb, "--output", checked_pdb)
-            .add_inputs(cleaned_pdb)
+            .add_args("--input", structure, "--output", checked_pdb)
+            .add_inputs(structure)
             .add_outputs(checked_pdb, stage_out=False, register_replica=False)
             .add_pegasus_profiles(label=sample)
         )
-        self.wf.add_jobs(check_job)
+        self.wf.add_jobs(clean_check_job)
 
-        # --- Step 3: topology (gmx pdb2gmx) ---
+        # --- Step 2: topology (gmx pdb2gmx) ---
         topo_gro = File(f"{sample}_topology.gro")
         topol_top = File(f"{sample}_topol.top")
         posre_itp = File(f"{sample}_posre.itp")
@@ -340,7 +328,7 @@ class GromacsMDWorkflow:
         )
         self.wf.add_jobs(topology_job)
 
-        # --- Step 4: solvation (editconf + solvate + grompp + genion) ---
+        # --- Step 3: solvation (editconf + solvate + grompp + genion) ---
         box_solv_ions_gro = File(f"{sample}_box_solv_ions.gro")
         topol_solv_top = File(f"{sample}_topol_solv.top")
         solvation_job = (
@@ -362,7 +350,7 @@ class GromacsMDWorkflow:
         )
         self.wf.add_jobs(solvation_job)
 
-        # --- Step 5: energy_min (grompp + mdrun) ---
+        # --- Step 4: energy_min (grompp + mdrun) ---
         em_gro = File(f"{sample}_em.gro")
         em_job = (
             Job("energy_min", _id=f"energy_min_{sample}", node_label=f"energy_min_{sample}")
@@ -379,7 +367,7 @@ class GromacsMDWorkflow:
         )
         self.wf.add_jobs(em_job)
 
-        # --- Step 6: nvt_equilibration (grompp -r + mdrun) ---
+        # --- Step 5: nvt_equilibration (grompp -r + mdrun) ---
         nvt_gro = File(f"{sample}_nvt.gro")
         nvt_job = (
             Job(
@@ -400,7 +388,7 @@ class GromacsMDWorkflow:
         )
         self.wf.add_jobs(nvt_job)
 
-        # --- Step 7: npt_equilibration (grompp -r + mdrun) ---
+        # --- Step 6: npt_equilibration (grompp -r + mdrun) ---
         npt_gro = File(f"{sample}_npt.gro")
         npt_job = (
             Job(
@@ -421,7 +409,7 @@ class GromacsMDWorkflow:
         )
         self.wf.add_jobs(npt_job)
 
-        # --- Step 8: production (grompp + mdrun + report-methods) ---
+        # --- Step 7: production (grompp + mdrun + report-methods) ---
         md_gro = File(f"{sample}_md.gro")
         md_tpr = File(f"{sample}_md.tpr")
         md_xtc = File(f"{sample}_md.xtc")
@@ -448,7 +436,7 @@ class GromacsMDWorkflow:
         )
         self.wf.add_jobs(production_job)
 
-        # --- Step 9: post_processing (trjconv, removes periodicity) ---
+        # --- Step 8: post_processing (trjconv, removes periodicity) ---
         noPBC_xtc = File(f"{sample}_noPBC.xtc")
         post_job = (
             Job(
@@ -468,7 +456,7 @@ class GromacsMDWorkflow:
         )
         self.wf.add_jobs(post_job)
 
-        # --- Step 10: analysis_rmsd (final deliverable) ---
+        # --- Step 9: analysis_rmsd (final deliverable) ---
         rmsd_xvg = File(f"{sample}_rmsd.xvg")
         rmsd_job = (
             Job("analysis_rmsd", _id=f"analysis_rmsd_{sample}", node_label=f"analysis_rmsd_{sample}")
@@ -484,7 +472,7 @@ class GromacsMDWorkflow:
         )
         self.wf.add_jobs(rmsd_job)
 
-        # --- Step 11: analysis_plot (RMSD .xvg -> PNG; not in the source pipeline) ---
+        # --- Step 10: analysis_plot (RMSD .xvg -> PNG; not in the source pipeline) ---
         rmsd_png = File(f"{sample}_rmsd.png")
         plot_job = (
             Job("analysis_plot", _id=f"analysis_plot_{sample}", node_label=f"analysis_plot_{sample}")

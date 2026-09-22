@@ -143,25 +143,17 @@ SAMPLE="1AKI"
 PDB="${TEST_DATA_DIR}/1AKI.pdb"
 
 # ==============================================================
-# Step 1: clean_pdb
+# Step 1: pdb_clean_and_check_missing_atoms
 # ==============================================================
-log_step "1. clean_pdb"
-python3 "${SCRIPT_DIR}/bin/clean_pdb.py" \
+log_step "1. pdb_clean_and_check_missing_atoms"
+python3 "${SCRIPT_DIR}/bin/pdb_clean_and_check_missing_atoms.py" \
     --input "${PDB}" \
-    --output "${OUTPUT_DIR}/${SAMPLE}_cleaned.pdb"
-
-# ==============================================================
-# Step 2: check_missing_atoms
-# ==============================================================
-log_step "2. check_missing_atoms"
-python3 "${SCRIPT_DIR}/bin/check_missing_atoms.py" \
-    --input "${OUTPUT_DIR}/${SAMPLE}_cleaned.pdb" \
     --output "${OUTPUT_DIR}/${SAMPLE}_checked.pdb"
 
 # ==============================================================
-# Step 3: topology (gmx pdb2gmx)
+# Step 2: topology (gmx pdb2gmx)
 # ==============================================================
-log_step "3. topology"
+log_step "2. topology"
 (
     cd "${OUTPUT_DIR}" && python3 "${SCRIPT_DIR}/bin/topology.py" \
         --input "${SAMPLE}_checked.pdb" \
@@ -173,9 +165,9 @@ log_step "3. topology"
 )
 
 # ==============================================================
-# Step 4: solvation
+# Step 3: solvation
 # ==============================================================
-log_step "4. solvation"
+log_step "3. solvation"
 (
     cd "${OUTPUT_DIR}" && python3 "${SCRIPT_DIR}/bin/solvation.py" \
         --input-gro "${SAMPLE}_topology.gro" \
@@ -188,9 +180,9 @@ log_step "4. solvation"
 )
 
 # ==============================================================
-# Step 5: energy_min
+# Step 4: energy_min
 # ==============================================================
-log_step "5. energy_min"
+log_step "4. energy_min"
 (
     cd "${OUTPUT_DIR}" && python3 "${SCRIPT_DIR}/bin/energy_min.py" \
         --input-gro "${SAMPLE}_box_solv_ions.gro" \
@@ -201,9 +193,9 @@ log_step "5. energy_min"
 )
 
 # ==============================================================
-# Step 6: nvt_equilibration
+# Step 5: nvt_equilibration
 # ==============================================================
-log_step "6. nvt_equilibration"
+log_step "5. nvt_equilibration"
 (
     cd "${OUTPUT_DIR}" && python3 "${SCRIPT_DIR}/bin/nvt_equilibration.py" \
         --input-gro "${SAMPLE}_em.gro" \
@@ -214,9 +206,9 @@ log_step "6. nvt_equilibration"
 )
 
 # ==============================================================
-# Step 7: npt_equilibration
+# Step 6: npt_equilibration
 # ==============================================================
-log_step "7. npt_equilibration"
+log_step "6. npt_equilibration"
 (
     cd "${OUTPUT_DIR}" && python3 "${SCRIPT_DIR}/bin/npt_equilibration.py" \
         --input-gro "${SAMPLE}_nvt.gro" \
@@ -227,9 +219,9 @@ log_step "7. npt_equilibration"
 )
 
 # ==============================================================
-# Step 8: production
+# Step 7: production
 # ==============================================================
-log_step "8. production"
+log_step "7. production"
 (
     cd "${OUTPUT_DIR}" && python3 "${SCRIPT_DIR}/bin/production.py" \
         --input-gro "${SAMPLE}_npt.gro" \
@@ -243,9 +235,9 @@ log_step "8. production"
 )
 
 # ==============================================================
-# Step 9: post_processing
+# Step 8: post_processing
 # ==============================================================
-log_step "9. post_processing"
+log_step "8. post_processing"
 (
     cd "${OUTPUT_DIR}" && python3 "${SCRIPT_DIR}/bin/post_processing.py" \
         --input-tpr "${SAMPLE}_md.tpr" \
@@ -255,9 +247,9 @@ log_step "9. post_processing"
 )
 
 # ==============================================================
-# Step 10: analysis_rmsd
+# Step 9: analysis_rmsd
 # ==============================================================
-log_step "10. analysis_rmsd"
+log_step "9. analysis_rmsd"
 (
     cd "${OUTPUT_DIR}" && python3 "${SCRIPT_DIR}/bin/analysis_rmsd.py" \
         --input-gro "${SAMPLE}_md.gro" \
@@ -267,9 +259,9 @@ log_step "10. analysis_rmsd"
 )
 
 # ==============================================================
-# Step 11: analysis_plot (RMSD .xvg -> PNG; not in the source pipeline)
+# Step 10: analysis_plot (RMSD .xvg -> PNG; not in the source pipeline)
 # ==============================================================
-log_step "11. analysis_plot"
+log_step "10. analysis_plot"
 (
     cd "${OUTPUT_DIR}" && python3 "${SCRIPT_DIR}/bin/analysis_plot.py" \
         --input "${SAMPLE}_rmsd.xvg" \
