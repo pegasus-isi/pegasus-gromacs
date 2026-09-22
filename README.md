@@ -65,8 +65,9 @@ pegasus-gromacs/
 ├── Apptainer/
 │   └── Gromacs_Container.def     # Container definition (micromamba + GROMACS + matplotlib)
 ├── data/
-│   ├── samplesheet.csv           # Example samplesheet (points at data/test/)
+│   ├── samplesheet.csv           # Samplesheet (written by run_manual.sh)
 │   └── test/                     # Test input data (created by run_manual.sh)
+│       └── <sample>/             # One subfolder per sample, e.g. 1AKI/
 ├── run_manual.sh                 # Local smoke test, no Pegasus required
 └── README.md
 ```
@@ -94,12 +95,14 @@ directory — no edit needed if you build it there.
 ### 2. Prepare Input Data
 
 Each sample needs: a structure file (PDB), and four `.mdp` files (energy
-minimization, NVT equilibration, NPT equilibration, production MD). List them
-in a samplesheet CSV:
+minimization, NVT equilibration, NPT equilibration, production MD). Keep each
+sample's files in their own subfolder, named after the sample — not a shared
+folder — so multiple samples' PDB/mdp files never collide. List them in a
+samplesheet CSV:
 
 ```csv
 sample,structure,em_mdp,nvt_mdp,npt_mdp,md_mdp,force_field,box_type,distance_to_box
-1AKI,data/test/1AKI.pdb,data/test/em.mdp,data/test/nvt.mdp,data/test/npt.mdp,data/test/md.mdp,charmm27,cubic,1.0
+1AKI,data/test/1AKI/1AKI.pdb,data/test/1AKI/em.mdp,data/test/1AKI/nvt.mdp,data/test/1AKI/npt.mdp,data/test/1AKI/md.mdp,charmm27,cubic,1.0
 ```
 
 - `force_field`: one of `charmm27`, `charmm36`, `amber`, `amber99sb`, `amber14sb`
@@ -107,7 +110,8 @@ sample,structure,em_mdp,nvt_mdp,npt_mdp,md_mdp,force_field,box_type,distance_to_
 - `distance_to_box` (optional, default `1.0`): distance to box edge in nm, `0.0`–`5.0`
 
 To generate a small real test case (hen egg-white lysozyme, PDB 1AKI) with
-placeholder `.mdp` files under `data/test/`, run:
+placeholder `.mdp` files under `data/test/1AKI/`, and write a matching
+`data/samplesheet.csv`, run:
 
 ```bash
 ./run_manual.sh

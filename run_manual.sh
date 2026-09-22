@@ -4,7 +4,13 @@
 # Runs each pipeline step locally (no Pegasus) against a small real test
 # case — hen egg-white lysozyme (PDB 1AKI), the classic GROMACS
 # protein-in-water tutorial system — to validate tool installation and
-# argument wiring before submitting through Pegasus.
+# argument wiring before submitting through Pegasus. Also (re)writes
+# data/samplesheet.csv so the same downloaded/generated data can be fed
+# straight into workflow_generator.py for an actual Pegasus run.
+#
+# Each sample's input data lives in its own subfolder, named after the
+# sample (data/test/<sample>/), not a shared "test" folder — so multiple
+# samples' PDB/mdp files never collide.
 #
 # The .mdp files generated below use deliberately tiny step counts so the
 # whole chain finishes in well under a minute. They are NOT suitable for a
@@ -19,7 +25,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEST_DATA_DIR="${SCRIPT_DIR}/data/test"
 OUTPUT_DIR="${SCRIPT_DIR}/test_output"
+SAMPLESHEET="${SCRIPT_DIR}/data/samplesheet.csv"
 GMX_CMD="${GMX_CMD:-gmx}"
+
+SAMPLE="1AKI"
+SAMPLE_DATA_DIR="${TEST_DATA_DIR}/${SAMPLE}"
 
 SKIP_DOWNLOAD=false
 while [[ $# -gt 0 ]]; do
@@ -39,24 +49,26 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
 log_step()    { echo ""; echo -e "${GREEN}========================================${NC}"; echo -e "${GREEN}STEP: $1${NC}"; echo -e "${GREEN}========================================${NC}"; }
 
-mkdir -p "${TEST_DATA_DIR}" "${OUTPUT_DIR}"
+mkdir -p "${SAMPLE_DATA_DIR}" "${OUTPUT_DIR}"
 
 # ==============================================================
 # Step 0: Prepare test data
 # ==============================================================
 log_step "Preparing test data"
 
+PDB="${SAMPLE_DATA_DIR}/${SAMPLE}.pdb"
+
 if [ "$SKIP_DOWNLOAD" = false ]; then
-    if [ ! -f "${TEST_DATA_DIR}/1AKI.pdb" ]; then
-        log_info "Downloading 1AKI.pdb (hen egg-white lysozyme) from RCSB..."
-        curl -sL -o "${TEST_DATA_DIR}/1AKI.pdb" "https://files.rcsb.org/download/1AKI.pdb"
+    if [ ! -f "${PDB}" ]; then
+        log_info "Downloading ${SAMPLE}.pdb (hen egg-white lysozyme) from RCSB..."
+        curl -sL -o "${PDB}" "https://files.rcsb.org/download/${SAMPLE}.pdb"
     fi
 else
     log_info "Skipping download (--skip-download)"
 fi
 
 # Minimal .mdp files — short nsteps for a fast smoke test only.
-cat > "${TEST_DATA_DIR}/em.mdp" <<'EOF'
+cat > "${SAMPLE_DATA_DIR}/em.mdp" <<'EOF'
 integrator  = steep
 emtol       = 1000.0
 emstep      = 0.01
@@ -68,7 +80,7 @@ rvdw        = 1.0
 pbc         = xyz
 EOF
 
-cat > "${TEST_DATA_DIR}/nvt.mdp" <<'EOF'
+cat > "${SAMPLE_DATA_DIR}/nvt.mdp" <<'EOF'
 integrator  = md
 nsteps      = 50
 dt          = 0.002
@@ -89,7 +101,7 @@ gen_temp    = 300
 gen_seed    = -1
 EOF
 
-cat > "${TEST_DATA_DIR}/npt.mdp" <<'EOF'
+cat > "${SAMPLE_DATA_DIR}/npt.mdp" <<'EOF'
 integrator  = md
 nsteps      = 50
 dt          = 0.002
@@ -113,7 +125,7 @@ pbc         = xyz
 gen_vel     = no
 EOF
 
-cat > "${TEST_DATA_DIR}/md.mdp" <<'EOF'
+cat > "${SAMPLE_DATA_DIR}/md.mdp" <<'EOF'
 integrator  = md
 nsteps      = 100
 dt          = 0.002
@@ -137,10 +149,14 @@ pbc         = xyz
 nstxout-compressed = 10
 EOF
 
-log_success "Test data ready in ${TEST_DATA_DIR}"
+log_success "Test data ready in ${SAMPLE_DATA_DIR}"
 
-SAMPLE="1AKI"
-PDB="${TEST_DATA_DIR}/1AKI.pdb"
+mkdir -p "$(dirname "${SAMPLESHEET}")"
+cat > "${SAMPLESHEET}" <<EOF
+sample,structure,em_mdp,nvt_mdp,npt_mdp,md_mdp,force_field,box_type,distance_to_box
+${SAMPLE},data/test/${SAMPLE}/${SAMPLE}.pdb,data/test/${SAMPLE}/em.mdp,data/test/${SAMPLE}/nvt.mdp,data/test/${SAMPLE}/npt.mdp,data/test/${SAMPLE}/md.mdp,charmm27,cubic,1.0
+EOF
+log_success "Samplesheet written to ${SAMPLESHEET}"
 
 # ==============================================================
 # Step 1: pdb_clean_and_check_missing_atoms
@@ -187,7 +203,7 @@ log_step "4. energy_min"
     cd "${OUTPUT_DIR}" && python3 "${SCRIPT_DIR}/bin/energy_min.py" \
         --input-gro "${SAMPLE}_box_solv_ions.gro" \
         --input-top "${SAMPLE}_topol_solv.top" \
-        --mdp "${TEST_DATA_DIR}/em.mdp" \
+        --mdp "${SAMPLE_DATA_DIR}/em.mdp" \
         --output-gro "${SAMPLE}_em.gro" \
         --gmx-cmd "${GMX_CMD}"
 )
@@ -200,7 +216,7 @@ log_step "5. nvt_equilibration"
     cd "${OUTPUT_DIR}" && python3 "${SCRIPT_DIR}/bin/nvt_equilibration.py" \
         --input-gro "${SAMPLE}_em.gro" \
         --input-top "${SAMPLE}_topol_solv.top" \
-        --mdp "${TEST_DATA_DIR}/nvt.mdp" \
+        --mdp "${SAMPLE_DATA_DIR}/nvt.mdp" \
         --output-gro "${SAMPLE}_nvt.gro" \
         --gmx-cmd "${GMX_CMD}"
 )
@@ -213,7 +229,7 @@ log_step "6. npt_equilibration"
     cd "${OUTPUT_DIR}" && python3 "${SCRIPT_DIR}/bin/npt_equilibration.py" \
         --input-gro "${SAMPLE}_nvt.gro" \
         --input-top "${SAMPLE}_topol_solv.top" \
-        --mdp "${TEST_DATA_DIR}/npt.mdp" \
+        --mdp "${SAMPLE_DATA_DIR}/npt.mdp" \
         --output-gro "${SAMPLE}_npt.gro" \
         --gmx-cmd "${GMX_CMD}"
 )
@@ -226,7 +242,7 @@ log_step "7. production"
     cd "${OUTPUT_DIR}" && python3 "${SCRIPT_DIR}/bin/production.py" \
         --input-gro "${SAMPLE}_npt.gro" \
         --input-top "${SAMPLE}_topol_solv.top" \
-        --mdp "${TEST_DATA_DIR}/md.mdp" \
+        --mdp "${SAMPLE_DATA_DIR}/md.mdp" \
         --output-gro "${SAMPLE}_md.gro" \
         --output-tpr "${SAMPLE}_md.tpr" \
         --output-xtc "${SAMPLE}_md.xtc" \
