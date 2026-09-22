@@ -154,7 +154,7 @@ log_success "Test data ready in ${SAMPLE_DATA_DIR}"
 mkdir -p "$(dirname "${SAMPLESHEET}")"
 cat > "${SAMPLESHEET}" <<EOF
 sample,structure,em_mdp,nvt_mdp,npt_mdp,md_mdp,force_field,box_type,distance_to_box
-${SAMPLE},data/test/${SAMPLE}/${SAMPLE}.pdb,data/test/${SAMPLE}/em.mdp,data/test/${SAMPLE}/nvt.mdp,data/test/${SAMPLE}/npt.mdp,data/test/${SAMPLE}/md.mdp,charmm27,cubic,1.0
+${SAMPLE},data/${SAMPLE}/${SAMPLE}.pdb,data/${SAMPLE}/em.mdp,data/${SAMPLE}/nvt.mdp,data/${SAMPLE}/npt.mdp,data/${SAMPLE}/md.mdp,charmm27,cubic,1.0
 EOF
 log_success "Samplesheet written to ${SAMPLESHEET}"
 
