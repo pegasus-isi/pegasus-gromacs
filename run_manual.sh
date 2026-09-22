@@ -23,7 +23,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEST_DATA_DIR="${SCRIPT_DIR}/data/test"
+TEST_DATA_DIR="${SCRIPT_DIR}/data/"
 OUTPUT_DIR="${SCRIPT_DIR}/test_output"
 SAMPLESHEET="${SCRIPT_DIR}/data/samplesheet.csv"
 GMX_CMD="${GMX_CMD:-gmx}"
