@@ -123,6 +123,13 @@ actual Pegasus run.
 
 ## Usage
 
+### Jupyter Notebook
+
+`GROMACS-MD-Workflow.ipynb` walks through the whole pipeline end to end — prepare input data, build the
+container, generate the workflow, visualize the DAG, plan/submit/monitor the run, and inspect the results
+(trajectory files, methods report, RMSD plot) — using the same `GromacsMDWorkflow` class as the CLI below.
+Open it in Jupyter and run the cells in order.
+
 ### Generate Workflow
 
 ```bash

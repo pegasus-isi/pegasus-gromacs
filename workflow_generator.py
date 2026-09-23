@@ -185,6 +185,41 @@ class GromacsMDWorkflow:
         self.wf.write(file=self.dagfile)
 
     # ------------------------------------------------------------------
+    # Plan / run / monitor (thin wrappers over the Pegasus API Workflow
+    # object, for interactive use e.g. from a Jupyter notebook)
+    # ------------------------------------------------------------------
+    def plan_submit(self, exec_site_name="compute"):
+        try:
+            self.wf.plan(
+                dir="submit",
+                sites=[exec_site_name],
+                output_sites=["local"],
+                cleanup="none",
+                verbose=1,
+                submit=True,
+            )
+        except PegasusClientError as e:
+            print(e)
+
+    def status(self):
+        try:
+            self.wf.status(long=True)
+        except PegasusClientError as e:
+            print(e)
+
+    def wait(self):
+        try:
+            self.wf.wait()
+        except PegasusClientError as e:
+            print(e)
+
+    def statistics(self):
+        try:
+            self.wf.statistics()
+        except PegasusClientError as e:
+            print(e)
+
+    # ------------------------------------------------------------------
     # Properties
     # ------------------------------------------------------------------
     def create_pegasus_properties(self):
