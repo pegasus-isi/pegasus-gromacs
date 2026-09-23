@@ -4,18 +4,11 @@
 # Runs each pipeline step locally (no Pegasus) against a small real test
 # case — hen egg-white lysozyme (PDB 1AKI), the classic GROMACS
 # protein-in-water tutorial system — to validate tool installation and
-# argument wiring before submitting through Pegasus. Also (re)writes
-# data/samplesheet.csv so the same downloaded/generated data can be fed
-# straight into workflow_generator.py for an actual Pegasus run.
+# argument wiring before submitting through Pegasus.
 #
-# Each sample's input data lives in its own subfolder, named after the
-# sample (data/test/<sample>/), not a shared "test" folder — so multiple
-# samples' PDB/mdp files never collide.
-#
-# The .mdp files generated below use deliberately tiny step counts so the
-# whole chain finishes in well under a minute. They are NOT suitable for a
-# real production MD run — replace them with properly validated .mdp files
-# (e.g. from the GROMACS tutorials) for real simulations.
+# Input data prep (download + .mdp files + samplesheet.csv) lives in
+# prepare_test_data.sh, called below. Run that script on its own instead of
+# this one when you just want input data ready for an actual Pegasus run.
 #
 # Usage:
 #   ./run_manual.sh [--skip-download]
@@ -23,21 +16,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEST_DATA_DIR="${SCRIPT_DIR}/data/"
+DATA_DIR="${SCRIPT_DIR}/data"
 OUTPUT_DIR="${SCRIPT_DIR}/test_output"
-SAMPLESHEET="${SCRIPT_DIR}/data/samplesheet.csv"
 GMX_CMD="${GMX_CMD:-gmx}"
 
-SAMPLE="1AKI"
-SAMPLE_DATA_DIR="${TEST_DATA_DIR}/${SAMPLE}"
-
-SKIP_DOWNLOAD=false
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --skip-download) SKIP_DOWNLOAD=true; shift ;;
-        *) echo "Unknown argument: $1"; echo "Usage: $0 [--skip-download]"; exit 1 ;;
-    esac
-done
+SAMPLE="${SAMPLE:-1AKI}"
+SAMPLE_DATA_DIR="${DATA_DIR}/${SAMPLE}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -49,114 +33,14 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
 log_step()    { echo ""; echo -e "${GREEN}========================================${NC}"; echo -e "${GREEN}STEP: $1${NC}"; echo -e "${GREEN}========================================${NC}"; }
 
-mkdir -p "${SAMPLE_DATA_DIR}" "${OUTPUT_DIR}"
+mkdir -p "${OUTPUT_DIR}"
 
 # ==============================================================
 # Step 0: Prepare test data
 # ==============================================================
-log_step "Preparing test data"
+"${SCRIPT_DIR}/prepare_test_data.sh" "$@"
 
 PDB="${SAMPLE_DATA_DIR}/${SAMPLE}.pdb"
-
-if [ "$SKIP_DOWNLOAD" = false ]; then
-    if [ ! -f "${PDB}" ]; then
-        log_info "Downloading ${SAMPLE}.pdb (hen egg-white lysozyme) from RCSB..."
-        curl -sL -o "${PDB}" "https://files.rcsb.org/download/${SAMPLE}.pdb"
-    fi
-else
-    log_info "Skipping download (--skip-download)"
-fi
-
-# Minimal .mdp files — short nsteps for a fast smoke test only.
-cat > "${SAMPLE_DATA_DIR}/em.mdp" <<'EOF'
-integrator  = steep
-emtol       = 1000.0
-emstep      = 0.01
-nsteps      = 50
-cutoff-scheme = Verlet
-coulombtype = PME
-rcoulomb    = 1.0
-rvdw        = 1.0
-pbc         = xyz
-EOF
-
-cat > "${SAMPLE_DATA_DIR}/nvt.mdp" <<'EOF'
-integrator  = md
-nsteps      = 50
-dt          = 0.002
-continuation = no
-constraint_algorithm = lincs
-constraints = h-bonds
-cutoff-scheme = Verlet
-coulombtype = PME
-rcoulomb    = 1.0
-rvdw        = 1.0
-tcoupl      = V-rescale
-tc-grps     = System
-tau_t       = 0.1
-ref_t       = 300
-pbc         = xyz
-gen_vel     = yes
-gen_temp    = 300
-gen_seed    = -1
-EOF
-
-cat > "${SAMPLE_DATA_DIR}/npt.mdp" <<'EOF'
-integrator  = md
-nsteps      = 50
-dt          = 0.002
-continuation = yes
-constraint_algorithm = lincs
-constraints = h-bonds
-cutoff-scheme = Verlet
-coulombtype = PME
-rcoulomb    = 1.0
-rvdw        = 1.0
-tcoupl      = V-rescale
-tc-grps     = System
-tau_t       = 0.1
-ref_t       = 300
-pcoupl      = C-rescale
-pcoupltype  = isotropic
-tau_p       = 2.0
-ref_p       = 1.0
-compressibility = 4.5e-5
-pbc         = xyz
-gen_vel     = no
-EOF
-
-cat > "${SAMPLE_DATA_DIR}/md.mdp" <<'EOF'
-integrator  = md
-nsteps      = 100
-dt          = 0.002
-continuation = yes
-constraint_algorithm = lincs
-constraints = h-bonds
-cutoff-scheme = Verlet
-coulombtype = PME
-rcoulomb    = 1.0
-rvdw        = 1.0
-tcoupl      = V-rescale
-tc-grps     = System
-tau_t       = 0.1
-ref_t       = 300
-pcoupl      = C-rescale
-pcoupltype  = isotropic
-tau_p       = 2.0
-ref_p       = 1.0
-compressibility = 4.5e-5
-pbc         = xyz
-nstxout-compressed = 10
-EOF
-
-log_success "Test data ready in ${SAMPLE_DATA_DIR}"
-
-mkdir -p "$(dirname "${SAMPLESHEET}")"
-cat > "${SAMPLESHEET}" <<EOF
-sample,structure,em_mdp,nvt_mdp,npt_mdp,md_mdp,force_field,box_type,distance_to_box
-${SAMPLE},data/${SAMPLE}/${SAMPLE}.pdb,data/${SAMPLE}/em.mdp,data/${SAMPLE}/nvt.mdp,data/${SAMPLE}/npt.mdp,data/${SAMPLE}/md.mdp,charmm27,cubic,1.0
-EOF
-log_success "Samplesheet written to ${SAMPLESHEET}"
 
 # ==============================================================
 # Step 1: pdb_clean_and_check_missing_atoms

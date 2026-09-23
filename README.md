@@ -65,10 +65,10 @@ pegasus-gromacs/
 ├── Apptainer/
 │   └── Gromacs_Container.def     # Container definition (micromamba + GROMACS + matplotlib)
 ├── data/
-│   ├── samplesheet.csv           # Samplesheet (written by run_manual.sh)
-│   └── test/                     # Test input data (created by run_manual.sh)
-│       └── <sample>/             # One subfolder per sample, e.g. 1AKI/
-├── run_manual.sh                 # Local smoke test, no Pegasus required
+│   ├── samplesheet.csv           # Samplesheet (written by prepare_test_data.sh)
+│   └── <sample>/                 # One subfolder per sample, e.g. 1AKI/
+├── prepare_test_data.sh          # Downloads/generates real test input data + samplesheet.csv
+├── run_manual.sh                 # Local smoke test, no Pegasus required (calls prepare_test_data.sh)
 └── README.md
 ```
 
@@ -102,20 +102,24 @@ samplesheet CSV:
 
 ```csv
 sample,structure,em_mdp,nvt_mdp,npt_mdp,md_mdp,force_field,box_type,distance_to_box
-1AKI,data/test/1AKI/1AKI.pdb,data/test/1AKI/em.mdp,data/test/1AKI/nvt.mdp,data/test/1AKI/npt.mdp,data/test/1AKI/md.mdp,charmm27,cubic,1.0
+1AKI,data/1AKI/1AKI.pdb,data/1AKI/em.mdp,data/1AKI/nvt.mdp,data/1AKI/npt.mdp,data/1AKI/md.mdp,charmm27,cubic,1.0
 ```
 
 - `force_field`: one of `charmm27`, `charmm36`, `amber`, `amber99sb`, `amber14sb`
 - `box_type` (optional, default `cubic`): `cubic`, `triclinic`, or `dodecahedron`
 - `distance_to_box` (optional, default `1.0`): distance to box edge in nm, `0.0`–`5.0`
 
-To generate a small real test case (hen egg-white lysozyme, PDB 1AKI) with
-placeholder `.mdp` files under `data/test/1AKI/`, and write a matching
-`data/samplesheet.csv`, run:
+To download a small real test case (hen egg-white lysozyme, PDB 1AKI) with
+placeholder `.mdp` files under `data/1AKI/`, and write a matching
+`data/samplesheet.csv` ready for `workflow_generator.py`, run:
 
 ```bash
-./run_manual.sh
+./prepare_test_data.sh
 ```
+
+`run_manual.sh` calls this script automatically before its local smoke test —
+run `prepare_test_data.sh` directly when you just want input data for an
+actual Pegasus run.
 
 ## Usage
 
