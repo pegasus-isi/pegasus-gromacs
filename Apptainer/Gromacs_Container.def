@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: mambaorg/micromamba:1.5-jammy
+From: mambaorg/micromamba:2.9-debian13
 
 %post
     # %post always runs as root during the build — no USER switching needed
