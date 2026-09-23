@@ -33,6 +33,11 @@ structure.pdb ──> pdb_clean_and_check_missing_atoms ──> topology ──>
                                                         └──> rmsd.xvg
 ```
 
+The Pegasus-generated workflow DAG (via `pegasus-graphviz`, see the notebook's "View the Generated Workflow
+DAG" step) for a single sample:
+
+![Pegasus GROMACS MD workflow DAG](images/pegasus-gromac-wf.png)
+
 | Step | Tool | Description |
 |------|------|-------------|
 | 1. pdb_clean_and_check_missing_atoms | `grep`-equivalent | Strip HETATM/CONECT records from the input PDB, then fail fast if it has missing atoms |
