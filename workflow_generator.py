@@ -194,7 +194,7 @@ class GromacsMDWorkflow:
     # ------------------------------------------------------------------
     # Site Catalog
     # ------------------------------------------------------------------
-    def create_sites_catalog(self, exec_site_name="condorpool"):
+    def create_sites_catalog(self, exec_site_name="compute"):
         self.sc = SiteCatalog()
 
         local = Site("local").add_directories(
@@ -221,7 +221,7 @@ class GromacsMDWorkflow:
     # ------------------------------------------------------------------
     # Transformation Catalog
     # ------------------------------------------------------------------
-    def create_transformation_catalog(self, exec_site_name="condorpool"):
+    def create_transformation_catalog(self, exec_site_name="compute"):
         self.tc = TransformationCatalog()
 
         container = Container(
@@ -496,7 +496,7 @@ def main():
         epilog="""
 Examples:
   %(prog)s --samplesheet samplesheet.csv --output workflow.yml
-  %(prog)s --samplesheet samplesheet.csv --gmx-cmd gmx_mpi -e condorpool
+  %(prog)s --samplesheet samplesheet.csv --gmx-cmd gmx_mpi -e compute
 """,
     )
 
@@ -526,8 +526,8 @@ Examples:
         "--execution-site-name",
         metavar="STR",
         type=str,
-        default="condorpool",
-        help="Execution site name (default: condorpool)",
+        default="compute",
+        help="Execution site name (default: compute)",
     )
     parser.add_argument(
         "-o",

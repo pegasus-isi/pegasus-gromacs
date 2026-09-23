@@ -135,14 +135,14 @@ python3 workflow_generator.py --samplesheet data/samplesheet.csv --output workfl
 |--------|---------|-------------|
 | `--samplesheet` | (required) | CSV samplesheet (see format above) |
 | `--gmx-cmd` | `gmx` | GROMACS command to invoke (e.g. `gmx_mpi`) |
-| `-e`, `--execution-site-name` | `condorpool` | HTCondor execution site name |
+| `-e`, `--execution-site-name` | `compute` | HTCondor execution site name |
 | `-s`, `--skip-sites-catalog` | false | Skip site catalog creation |
 | `-o`, `--output` | `workflow.yml` | Output workflow file |
 
 ### Plan and Submit
 
 ```bash
-pegasus-plan --dir submit -s condorpool -o local workflow.yml
+pegasus-plan --dir submit -s compute -o local workflow.yml
 ```
 
 ### Monitor
