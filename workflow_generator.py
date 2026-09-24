@@ -222,12 +222,23 @@ class GromacsMDWorkflow:
     # ------------------------------------------------------------------
     # Properties
     # ------------------------------------------------------------------
-    def create_pegasus_properties(self):
+    def create_pegasus_properties(self, hosted_site_catalog=None):
         self.props = Properties()
         self.props["pegasus.transfer.threads"] = "16"
+        if hosted_site_catalog:
+            # Use one of Pegasus' centrally hosted site catalogs instead of
+            # a locally generated one. pegasus-plan downloads and caches the
+            # named file from the catalog repository at plan time.
+            # https://pegasus.isi.edu/documentation/reference-guide/catalogs.html#centrally-hosted-site-catalogs
+            self.props["pegasus.catalog.site.repo.file"] = hosted_site_catalog
 
     # ------------------------------------------------------------------
     # Site Catalog
+    #
+    # Not used by the CLI below by default — pegasus-plan resolves the site
+    # catalog from a centrally hosted one instead (see -s/--hosted-site-catalog
+    # and create_pegasus_properties above). Kept for programmatic/notebook use
+    # when a self-contained, locally generated HTCondor site catalog is wanted.
     # ------------------------------------------------------------------
     def create_sites_catalog(self, exec_site_name="compute"):
         self.sc = SiteCatalog()
@@ -532,6 +543,7 @@ def main():
 Examples:
   %(prog)s --samplesheet samplesheet.csv --output workflow.yml
   %(prog)s --samplesheet samplesheet.csv --gmx-cmd gmx_mpi -e compute
+  %(prog)s --samplesheet samplesheet.csv -s access-pegasus.yml
 """,
     )
 
@@ -552,9 +564,15 @@ Examples:
     )
     parser.add_argument(
         "-s",
-        "--skip-sites-catalog",
-        action="store_true",
-        help="Skip site catalog creation",
+        "--hosted-site-catalog",
+        metavar="FILE",
+        type=str,
+        default=None,
+        help="Name of a Pegasus centrally hosted site catalog to plan against "
+        "(e.g. access-pegasus.yml), instead of a locally generated one. Sets "
+        "pegasus.catalog.site.repo.file; see "
+        "https://pegasus.isi.edu/documentation/reference-guide/catalogs.html"
+        "#centrally-hosted-site-catalogs",
     )
     parser.add_argument(
         "-e",
@@ -587,6 +605,9 @@ Examples:
     logger.info(f"Samples: {[s['sample'] for s in samples]}")
     logger.info(f"GROMACS command: {args.gmx_cmd}")
     logger.info(f"Execution site: {args.execution_site_name}")
+    logger.info(
+        f"Hosted site catalog: {args.hosted_site_catalog or '(none — supply your own site catalog)'}"
+    )
     logger.info(f"Output file: {args.output}")
     logger.info("=" * 70)
 
@@ -595,11 +616,7 @@ Examples:
             samples=samples, gmx_cmd=args.gmx_cmd, dagfile=args.output
         )
 
-        workflow.create_pegasus_properties()
-
-        if not args.skip_sites_catalog:
-            workflow.create_sites_catalog(exec_site_name=args.execution_site_name)
-
+        workflow.create_pegasus_properties(hosted_site_catalog=args.hosted_site_catalog)
         workflow.create_transformation_catalog(exec_site_name=args.execution_site_name)
         workflow.create_replica_catalog()
         workflow.create_workflow()

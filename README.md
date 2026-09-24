@@ -148,8 +148,23 @@ python3 workflow_generator.py --samplesheet data/samplesheet.csv --output workfl
 | `--samplesheet` | (required) | CSV samplesheet (see format above) |
 | `--gmx-cmd` | `gmx` | GROMACS command to invoke (e.g. `gmx_mpi`) |
 | `-e`, `--execution-site-name` | `compute` | HTCondor execution site name |
-| `-s`, `--skip-sites-catalog` | false | Skip site catalog creation |
+| `-s`, `--hosted-site-catalog` | (none) | Name of a Pegasus [centrally hosted site catalog](https://pegasus.isi.edu/documentation/reference-guide/catalogs.html#centrally-hosted-site-catalogs) to plan against, e.g. `usc-discovery.yml` |
 | `-o`, `--output` | `workflow.yml` | Output workflow file |
+
+### Site Catalog
+
+The CLI does not generate a site catalog by default. Point `pegasus-plan` at a site catalog one of two ways:
+
+- **Centrally hosted** (recommended): pass `-s <file>.yml` when generating the workflow. This sets
+  `pegasus.catalog.site.repo.file` in `pegasus.properties`, and `pegasus-plan` downloads and caches the
+  named catalog automatically — see the
+  [Pegasus docs](https://pegasus.isi.edu/documentation/reference-guide/catalogs.html#centrally-hosted-site-catalogs)
+  for available catalogs. The hosted catalog's compute site must be named to match `-e`/`--execution-site-name`
+  (`compute` by default).
+- **Locally generated**: `GromacsMDWorkflow.create_sites_catalog()` (in `workflow_generator.py`) builds a
+  self-contained, single-machine HTCondor site catalog. It isn't called by the CLI, but the notebook
+  (`GROMACS-MD-Workflow.ipynb`) calls it directly — use it as a template for your own site if you're not using
+  a hosted catalog.
 
 ### Plan and Submit
 
